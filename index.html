@@ -1,0 +1,268 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>HP67 Produktlisten-Manager</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#0f1115">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <style>
+    :root{--bg:#0f1115;--card:#151923;--ink:#e9eef7;--muted:#9aa3b2;--accent:#ff2d55;--accent-2:#ffcc00;--ok:#2ecc71;--warn:#ffb020;--danger:#ff4757;--border:#232738;--chip:#1e2431;--input:#121620}
+    *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    header{position:sticky;top:0;background:linear-gradient(180deg,#0f1115 70%,#0f111580);backdrop-filter: blur(10px);z-index:10;border-bottom:1px solid var(--border)}
+    .bar{display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.8rem .9rem;max-width:980px;margin:0 auto}
+    .brand{display:flex;align-items:center;gap:.6rem;font-weight:700}
+    .brand .logo{width:28px;height:28px;border-radius:7px;background:conic-gradient(from 210deg, var(--accent), var(--accent-2));display:grid;place-items:center}
+    .brand .logo span{font-size:.9rem;font-weight:900;color:#0c0f14}
+    .search{flex:1;display:flex;gap:.5rem;margin:0 .6rem}
+    .search input{flex:1;background:var(--input);border:1px solid var(--border);border-radius:10px;padding:.7rem .9rem;color:var(--ink);outline:none}
+    .btn{appearance:none;border:none;background:var(--chip);color:var(--ink);padding:.65rem .9rem;border-radius:10px;font-weight:600}
+    .btn.primary{background:var(--accent);color:white}.btn.ghost{background:transparent;border:1px solid var(--border)}.btn.small{padding:.45rem .6rem;border-radius:8px;font-size:.9rem}
+    main{max-width:980px;margin:0 auto;padding:1rem}.row{display:flex;gap:1rem;flex-wrap:wrap}.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1rem}
+    .tools{display:flex;gap:.5rem;flex-wrap:wrap}.chips{display:flex;gap:.5rem;flex-wrap:wrap}.chip{background:var(--chip);border:1px solid var(--border);padding:.3rem .6rem;border-radius:999px;font-size:.85rem;color:var(--muted)}
+    .muted{color:var(--muted)}table{width:100%;border-collapse:collapse}th,td{padding:.7rem;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+    th{font-size:.85rem;color:var(--muted);font-weight:700}tr:hover{background:rgba(255,255,255,0.02)}.empty{padding:2rem;text-align:center;color:var(--muted)}
+    .pill{padding:.2rem .45rem;border-radius:6px;background:#1a1f2b;border:1px solid var(--border);font-size:.8rem}
+    .right{display:flex;gap:.5rem;align-items:center}.grid{display:grid;grid-template-columns:1fr;gap:.8rem}@media(min-width:750px){ .grid{grid-template-columns:repeat(2,1fr)} }
+    label{font-size:.85rem;color:var(--muted)}input,select,textarea{width:100%;background:var(--input);border:1px solid var(--border);border-radius:10px;padding:.65rem .8rem;color:var(--ink);outline:none}
+    textarea{min-height:72px;resize:vertical}dialog{border:none;border-radius:16px;padding:0;background:transparent}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:720px;width:92vw}
+    .modal header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--border);border-top-left-radius:16px;border-top-right-radius:16px}
+    .modal .body{padding:1rem}.modal .foot{display:flex;gap:.5rem;justify-content:flex-end;padding:1rem;border-top:1px solid var(--border)}
+    .kbd{padding:.1rem .35rem;border:1px solid var(--border);border-radius:6px;background:#0e121a;color:var(--muted);font-size:.8rem}
+    .hint{font-size:.85rem;color:var(--muted)}.danger{color:var(--danger)}.ok{color:var(--ok)}.sep{height:1px;background:var(--border);margin:.6rem 0}
+    .footer{color:var(--muted);font-size:.85rem;text-align:center;padding:1rem 0}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div class="brand">
+        <div class="logo"><span>HP</span></div>
+        <div>Produktlisten-Manager</div>
+      </div>
+      <div class="search">
+        <input id="q" placeholder="Suche: Name, SKU, Kategorie, Material, Größe …" autocomplete="off">
+        <button class="btn ghost small" id="clear">Löschen</button>
+      </div>
+      <div class="right">
+        <button class="btn small" id="backup">Backup</button>
+        <button class="btn small" id="restore">Import</button>
+        <button class="btn small" id="exportCsv">CSV</button>
+        <button class="btn primary" id="add">Neues Produkt</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="row">
+      <div class="card" style="flex:1 1 320px;">
+        <div class="tools">
+          <span class="chip">Lokal gespeichert <span id="savePing" class="pill">●</span></span>
+          <span class="chip">Auto-SKU</span>
+          <span class="chip">Marge % / €</span>
+          <span class="chip">CSV-Export/Import</span>
+          <span class="chip">Varianten</span>
+        </div>
+        <div class="sep"></div>
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Name</th>
+              <th>Kategorie</th>
+              <th>Material</th>
+              <th>Größe/Farbe</th>
+              <th class="muted">EK → VK</th>
+              <th class="muted">Marge</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="8" class="empty">Noch keine Produkte. Tippe auf <b>Neues Produkt</b>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="footer">HooDPlaka67 • Offline-App (iOS/Android/PC) • v1.0</div>
+  </main>
+
+  <dialog id="dlg">
+    <div class="modal">
+      <header class="bar" style="position:sticky;">
+        <div class="brand">
+          <div class="logo"><span>HP</span></div>
+          <div id="dlgTitle">Produkt</div>
+        </div>
+        <div class="right"><button class="btn ghost small" id="xClose">Schließen</button></div>
+      </header>
+      <div class="body">
+        <div class="grid">
+          <div><label>Produktname</label><input id="f_name" placeholder="z. B. Sticker ‚HP67 Logo‘"></div>
+          <div><label>Kategorie</label><select id="f_cat">
+              <option value="Sticker">Sticker</option>
+              <option value="Textil">Textil</option>
+              <option value="Tasche">Tasche</option>
+              <option value="Bundle">Bundle</option>
+              <option value="Sonstiges">Sonstiges</option>
+          </select></div>
+          <div><label>Material</label><input id="f_mat" placeholder="Glossy / Weiß Matt / Holo / Baumwolle …"></div>
+          <div><label>Größe</label><input id="f_size" placeholder="9.5×9.5 cm / A3 / S-XXL …"></div>
+          <div><label>Farbe</label><input id="f_color" placeholder="Rot / Schwarz / Transparent …"></div>
+          <div><label>SKU</label><input id="f_sku" placeholder="automatisch" autocomplete="off"><div class="hint">Leer lassen für Auto-SKU (z. B. STK-000123)</div></div>
+          <div><label>EK (EUR)</label><input id="f_ek" type="number" min="0" step="0.01" placeholder="z. B. 1.20"></div>
+          <div><label>VK (EUR)</label><input id="f_vk" type="number" min="0" step="0.01" placeholder="z. B. 2.50"></div>
+          <div><label>Bestand</label><input id="f_stock" type="number" min="0" step="1" placeholder="z. B. 100"></div>
+          <div><label>Varianten (optional)</label><input id="f_vars" placeholder="Kommagetrennt: 6.5×6.5; 9.5×9.5; 20×5"></div>
+          <div style="grid-column:1/-1"><label>Notizen</label><textarea id="f_notes" placeholder="Druck-Setup, ICC, Lieferant, Rabattstaffeln …"></textarea></div>
+        </div>
+        <div class="sep"></div>
+        <div class="right"><span class="hint">Marge wird automatisch berechnet.</span></div>
+      </div>
+      <div class="foot">
+        <button class="btn danger" id="delBtn" style="display:none">Löschen</button>
+        <button class="btn ghost" id="dupBtn">Duplizieren</button>
+        <button class="btn" id="saveBtn">Speichern</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+  (function(){
+    const $ = s => document.querySelector(s);
+    const storeKey = 'hp67_pm_v1';
+    let data = load();
+    let editingIndex = null;
+    const skuPrefixes = {'Sticker':'STK','Textil':'TXT','Tasche':'BAG','Bundle':'BNL','Sonstiges':'MIX'};
+
+    function load(){ try{ return JSON.parse(localStorage.getItem(storeKey))||[] }catch(e){ return [] } }
+    function save(){ localStorage.setItem(storeKey, JSON.stringify(data)); pingSave(); }
+    function pingSave(){ const el = document.getElementById('savePing'); el.textContent='●'; el.style.color='var(--ok)'; setTimeout(()=>{ el.style.color='var(--muted)' },900) }
+    function genSKU(cat){ const pre = skuPrefixes[cat]||'PRD'; let max=0; for(const p of data){ if((p.sku||'').startsWith(pre+'-')){ const n=parseInt(p.sku.split('-')[1],10); if(!isNaN(n)&&n>max) max=n } } return `${pre}-${(max+1).toString().padStart(6,'0')}` }
+    function money(v){ return Number(v||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'}) }
+    function escapeHTML(s=''){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
+
+    function render(list=data){
+      const tb = document.getElementById('tbody'); tb.innerHTML='';
+      if(!list.length){ tb.innerHTML='<tr><td colspan="8" class="empty">Noch keine Produkte. Tippe auf <b>Neues Produkt</b>.</td></tr>'; return; }
+      list.forEach((p,i)=>{
+        const ek=+p.ek||0, vk=+p.vk||0, mar=vk-ek, pct=vk?mar/vk*100:0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><span class="pill">${p.sku||''}</span></td>
+          <td>${escapeHTML(p.name||'')}</td>
+          <td>${escapeHTML(p.cat||'')}</td>
+          <td>${escapeHTML(p.mat||'')}</td>
+          <td><div class="muted">${escapeHTML([p.size,p.color].filter(Boolean).join(' • '))}</div></td>
+          <td class="muted">${money(ek)} → <b style="color:#fff">${money(vk)}</b></td>
+          <td><span class="pill">${money(mar)} • ${pct.toFixed(0)}%</span></td>
+          <td class="right">
+            <button class="btn small ghost" data-act="edit" data-i="${i}">Bearbeiten</button>
+            <button class="btn small" data-act="quickdup" data-i="${i}">Duplizieren</button>
+          </td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+    function openModal(i=null){
+      editingIndex = i;
+      const p = i==null?{}:data[i];
+      document.getElementById('dlgTitle').textContent = i==null ? 'Neues Produkt' : `Produkt bearbeiten (${p.sku||''})`;
+      ['name','mat','size','color','sku','notes'].forEach(k=>{ document.getElementById('f_'+k).value = p[k]||'' });
+      document.getElementById('f_cat').value = p.cat||'Sticker';
+      document.getElementById('f_ek').value = p.ek!=null?p.ek:'';
+      document.getElementById('f_vk').value = p.vk!=null?p.vk:'';
+      document.getElementById('f_stock').value = p.stock!=null?p.stock:'';
+      document.getElementById('f_vars').value = (p.variants||[]).join('; ');
+      document.getElementById('delBtn').style.display = i==null?'none':'inline-block';
+      document.getElementById('dlg').showModal();
+    }
+    function collectForm(){
+      const cat = document.getElementById('f_cat').value;
+      let sku = document.getElementById('f_sku').value.trim(); if(!sku) sku = genSKU(cat);
+      const variants = document.getElementById('f_vars').value.split(/[,;\n]+/).map(s=>s.trim()).filter(Boolean);
+      return { name:document.getElementById('f_name').value.trim(), cat,
+        mat:document.getElementById('f_mat').value.trim(), size:document.getElementById('f_size').value.trim(),
+        color:document.getElementById('f_color').value.trim(), sku, ek:+(document.getElementById('f_ek').value||0),
+        vk:+(document.getElementById('f_vk').value||0), stock:+(document.getElementById('f_stock').value||0),
+        variants, notes:document.getElementById('f_notes').value.trim(), ts:Date.now() };
+    }
+
+    function toCSV(list){
+      const header=['SKU','Name','Kategorie','Material','Größe','Farbe','EK','VK','Bestand','Varianten','Notizen'];
+      const rows=list.map(p=>[p.sku,p.name,p.cat,p.mat,p.size,p.color,p.ek,p.vk,p.stock,(p.variants||[]).join(' | '),p.notes]);
+      const esc = s => {
+        s = (s==null) ? '' : String(s);
+        return /[";\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+      };
+      return [header, ...rows].map(r => r.map(esc).join(';')).join('\n');
+    }
+
+    function download(filename, text, mime='text/plain'){
+      const blob = new Blob([text], {type:mime});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),800);
+    }
+
+    document.getElementById('add').addEventListener('click', ()=>openModal(null));
+    document.getElementById('xClose').addEventListener('click', ()=>document.getElementById('dlg').close());
+    document.getElementById('clear').addEventListener('click', ()=>{ document.getElementById('q').value=''; render(); });
+
+    document.getElementById('saveBtn').addEventListener('click', ()=>{
+      const p = collectForm();
+      if(editingIndex==null) data.unshift(p); else data[editingIndex]=p;
+      save(); render(); document.getElementById('dlg').close();
+    });
+    document.getElementById('delBtn').addEventListener('click', ()=>{
+      if(editingIndex!=null && confirm('Wirklich löschen?')){ data.splice(editingIndex,1); save(); render(); document.getElementById('dlg').close(); }
+    });
+    document.getElementById('dupBtn').addEventListener('click', ()=>{
+      const p = collectForm(); p.sku = genSKU(p.cat||'Sonstiges'); data.unshift(p); save(); render();
+    });
+    document.getElementById('tbody').addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-act]'); if(!btn) return;
+      const i = +btn.dataset.i; if(btn.dataset.act==='edit') openModal(i);
+      if(btn.dataset.act==='quickdup'){ const p = {...data[i]}; p.sku = genSKU(p.cat||'Sonstiges'); p.ts=Date.now(); data.unshift(p); save(); render(); }
+    });
+    document.getElementById('backup').addEventListener('click', ()=>{
+      const payload = {version:1, exported:new Date().toISOString(), items:data};
+      download('hp67_backup.json', JSON.stringify(payload,null,2), 'application/json');
+    });
+    document.getElementById('exportCsv').addEventListener('click', ()=>{
+      download('hp67_produkte.csv', toCSV(data), 'text/csv;charset=utf-8');
+    });
+    document.getElementById('restore').addEventListener('click', ()=>{
+      const input = document.createElement('input'); input.type='file'; input.accept='.json';
+      input.onchange = async e=>{
+        const file = e.target.files[0]; if(!file) return;
+        try{
+          const obj = JSON.parse(await file.text());
+          data = Array.isArray(obj.items)?obj.items:(Array.isArray(obj)?obj:[]);
+          save(); render();
+        }catch(err){ alert('Import fehlgeschlagen.'); }
+      };
+      input.click();
+    });
+    document.getElementById('q').addEventListener('input', e=>{
+      const q = e.target.value.toLowerCase().trim(); if(!q){ render(); return; }
+      const list = data.filter(p=> [p.sku,p.name,p.cat,p.mat,p.size,p.color,(p.variants||[]).join(' ')].join(' ').toLowerCase().includes(q));
+      render(list);
+    });
+
+    if(!data.length){
+      data = [
+        {sku:'STK-000001', name:'HP67 Logo', cat:'Sticker', mat:'Glossy', size:'9.5×9.5', color:'Rot', ek:0.12, vk:0.35, stock:250, variants:['6.5×6.5','9.5×9.5','20×5'], notes:'Standard-QR unten rechts', ts:Date.now()},
+        {sku:'TXT-000001', name:'Hoodie „Betze“', cat:'Textil', mat:'Baumwolle 320g', size:'S-XXL', color:'Schwarz', ek:17.50, vk:39.90, stock:25, variants:['S','M','L','XL','XXL'], notes:'DTV 155°C 15s, warm abziehen', ts:Date.now()},
+        {sku:'BAG-000001', name:'Premium Umhängetasche', cat:'Tasche', mat:'Polyester', size:'One Size', color:'Schwarz', ek:9.90, vk:24.90, stock:12, variants:['Mit Logo','Ohne Logo'], notes:'Front-Druck 18×10 cm', ts:Date.now()}
+      ];
+      save();
+    }
+    render();
+  })();
+  </script>
+</body>
+</html>
